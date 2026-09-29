@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ringgit Tracker</title>
+  <!-- Tailwind CSS & Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .tab-active { color: #4f46e5; border-bottom: 2px solid #4f46e5; font-weight: 700; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); }
+  </style>
+</head>
+<body class="bg-slate-100/80 text-slate-800 min-h-screen flex justify-center">
+
+  <div class="w-full max-w-md min-h-screen bg-slate-50 flex flex-col shadow-2xl relative">
+    
+    <!-- Top Header -->
+    <header class="bg-gradient-to-r from-brand-600 to-indigo-700 text-white p-5 sticky top-0 z-40 shadow-lg">
+      <div class="flex justify-between items-center">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🇲🇾</span>
+            <h1 class="text-lg font-extrabold tracking-tight">Ringgit Tracker</h1>
+          </div>
+          <p class="text-xs text-brand-100 font-medium">Smart MYR Budgeting</p>
+        </div>
+        <div class="text-right bg-white/10 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-sm">
+          <span class="text-[9px] uppercase tracking-wider text-brand-200 block font-semibold">Total Spent</span>
+          <div id="quickTotal" class="font-mono text-base font-bold text-white">RM 0.00</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex border-b border-slate-200/80 bg-white sticky top-[68px] z-30 text-xs shadow-sm">
+      <button onclick="switchTab('insert')" id="tab-insert" class="flex-1 py-3.5 text-center tab-active transition-all flex items-center justify-center gap-1.5">
+        <span>✏️</span> <span>Insert</span>
+      </button>
+      <button onclick="switchTab('analytics')" id="tab-analytics" class="flex-1 py-3.5 text-center text-slate-400 font-medium hover:text-slate-600 transition-all flex items-center justify-center gap-1.5">
+        <span>📊</span> <span>Analytics</span>
+      </button>
+      <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-3.5 text-center text-slate-400 font-medium hover:text-slate-600 transition-all flex items-center justify-center gap-1.5">
+        <span>📜</span> <span>History</span>
+      </button>
+    </nav>
+
+    <!-- Content Area -->
+    <main class="flex-1 p-4 pb-20">
+      
+      <!-- TAB 1: INSERT EXPENSE -->
+      <div id="view-insert" class="space-y-4">
+        <form id="expenseForm" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5 tracking-wide uppercase">Amount</label>
+            <div class="relative">
+              <span class="absolute left-4 top-3 text-slate-400 font-bold font-mono text-base">RM</span>
+              <input type="number" id="amt" step="0.01" min="0.01" required placeholder="0.00" class="w-full pl-14 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xl font-bold font-mono text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5 tracking-wide uppercase">Description</label>
+            <input type="text" id="desc" required placeholder="e.g. Kopitiam Lunch, Shell Petrol" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1.5 tracking-wide uppercase">Category</label>
+              <select id="cat" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                <option value="Food & Drinks">🍔 Food & Drinks</option>
+                <option value="Groceries">🛒 Groceries</option>
+                <option value="Transport">🚗 Transport</option>
+                <option value="Bills & Utilities">💡 Bills & Utilities</option>
+                <option value="Shopping">🛍️ Shopping</option>
+                <option value="Entertainment">🎬 Entertainment</option>
+                <option value="Other">📦 Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1.5 tracking-wide uppercase">Payment Method</label>
+              <select id="payMethod" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                <option value="Credit / Debit Card" selected>💳 Card</option>
+                <option value="DuitNow QR / TnG">📱 DuitNow / TnG</option>
+                <option value="Cash">💵 Cash</option>
+                <option value="Online Banking">🏦 Online Banking</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5 tracking-wide uppercase">Date</label>
+            <input type="date" id="date" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+          </div>
+
+          <button type="submit" class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-brand-500/25 transition-all text-sm flex items-center justify-center gap-2">
+            <span>+</span> <span>Save Expense</span>
+          </button>
+        </form>
+
+        <!-- Quick Tap Malaysian Presets -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60">
+          <label class="block text-[11px] font-bold text-slate-400 mb-2.5 uppercase tracking-wider">Quick Presets (1-Tap Fill)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="setPreset('Kopitiam Breakfast', 8.50, 'Food & Drinks')" class="p-2.5 bg-slate-50 hover:bg-brand-50 hover:border-brand-200 border border-slate-200/80 rounded-xl text-left transition-all">
+              <span class="block text-xs font-bold text-slate-700">☕ Kopitiam</span>
+              <span class="text-[11px] font-mono text-slate-400">RM 8.50</span>
+            </button>
+            <button onclick="setPreset('Mamak Dinner', 14.00, 'Food & Drinks')" class="p-2.5 bg-slate-50 hover:bg-brand-50 hover:border-brand-200 border border-slate-200/80 rounded-xl text-left transition-all">
+              <span class="block text-xs font-bold text-slate-700">🍛 Mamak</span>
+              <span class="text-[11px] font-mono text-slate-400">RM 14.00</span>
+            </button>
+            <button onclick="setPreset('99 Speedmart', 35.00, 'Groceries')" class="p-2.5 bg-slate-50 hover:bg-brand-50 hover:border-brand-200 border border-slate-200/80 rounded-xl text-left transition-all">
+              <span class="block text-xs font-bold text-slate-700">🛒 Speedmart</span>
+              <span class="text-[11px] font-mono text-slate-400">RM 35.00</span>
+            </button>
+            <button onclick="setPreset('RON95 Petrol', 40.00, 'Transport')" class="p-2.5 bg-slate-50 hover:bg-brand-50 hover:border-brand-200 border border-slate-200/80 rounded-xl text-left transition-all">
+              <span class="block text-xs font-bold text-slate-700">⛽ Petrol</span>
+              <span class="text-[11px] font-mono text-slate-400">RM 40.00</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ANALYTICS & CHARTS -->
+      <div id="view-analytics" class="hidden space-y-4">
+        <div class="flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm">
+          <span class="text-xs font-bold text-slate-600">Month:</span>
+          <input type="month" id="monthPicker" class="text-xs font-bold text-slate-700 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none" onchange="renderAnalytics()">
+        </div>
+
+        <div class="bg-gradient-to-br from-indigo-500 to-brand-600 rounded-2xl p-4 text-white shadow-lg flex justify-between items-center">
+          <div>
+            <span class="text-xs text-indigo-100 font-semibold block">Monthly Outflow</span>
+            <span id="monthTotal" class="text-2xl font-black font-mono">RM 0.00</span>
+          </div>
+          <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl backdrop-blur-md">
+            📈
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Category Breakdown</h4>
+          <div class="relative w-full h-[220px]">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">6-Month Spending Trend</h4>
+          <div class="relative w-full h-[180px]">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: TRANSACTION HISTORY -->
+      <div id="view-history" class="hidden space-y-3">
+        <div class="relative">
+          <input type="text" id="searchInput" placeholder="Search by name or category..." oninput="renderHistory()" class="w-full px-4 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500/20 outline-none shadow-sm">
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-2">
+          <ul id="historyList" class="divide-y divide-slate-100 text-sm"></ul>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    let expenses = JSON.parse(localStorage.getItem('myr_deluxe_expenses')) || [];
+    document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('monthPicker').value = new Date().toISOString().slice(0, 7);
+
+    let catChartInstance = null;
+    let trendChartInstance = null;
+
+    function switchTab(tab) {
+      ['insert','analytics','history'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`tab-${t}`);
+        if(t === tab) {
+          btn.className = "flex-1 py-3.5 text-center tab-active transition-all flex items-center justify-center gap-1.5";
+        } else {
+          btn.className = "flex-1 py-3.5 text-center text-slate-400 font-medium hover:text-slate-600 transition-all flex items-center justify-center gap-1.5";
+        }
+      });
+      if(tab === 'analytics') renderAnalytics();
+      if(tab === 'history') renderHistory();
+    }
+
+    function setPreset(desc, amt, cat) {
+      document.getElementById('desc').value = desc;
+      document.getElementById('amt').value = amt.toFixed(2);
+      document.getElementById('cat').value = cat;
+    }
+
+    document.getElementById('expenseForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newEntry = {
+        id: Date.now(),
+        amt: parseFloat(document.getElementById('amt').value),
+        desc: document.getElementById('desc').value.trim(),
+        cat: document.getElementById('cat').value,
+        payMethod: document.getElementById('payMethod').value,
+        date: document.getElementById('date').value
+      };
+      expenses.unshift(newEntry);
+      localStorage.setItem('myr_deluxe_expenses', JSON.stringify(expenses));
+      
+      document.getElementById('amt').value = '';
+      document.getElementById('desc').value = '';
+      document.getElementById('payMethod').value = 'Credit / Debit Card';
+      updateTotal();
+      
+      // Gentle vibration feedback on supported Android devices
+      if(navigator.vibrate) navigator.vibrate(30);
+    });
+
+    function updateTotal() {
+      const sum = expenses.reduce((a, b) => a + b.amt, 0);
+      document.getElementById('quickTotal').textContent = `RM ${sum.toFixed(2)}`;
+    }
+
+    function renderHistory() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      const filtered = expenses.filter(x => x.desc.toLowerCase().includes(q) || x.cat.toLowerCase().includes(q));
+      
+      if(!filtered.length) {
+        list.innerHTML = '<li class="p-8 text-center text-xs text-slate-400 font-medium">No transactions found.</li>';
+        return;
+      }
+      
+      filtered.forEach(item => {
+        const li = document.createElement('li');
+        li.className = "py-3 px-2 flex justify-between items-center hover:bg-slate-50 rounded-xl transition-colors";
+        li.innerHTML = `
+          <div>
+            <div class="font-bold text-slate-800 text-xs">${item.desc}</div>
+            <div class="text-[10px] text-slate-400 font-medium mt-0.5">${item.cat} • ${item.payMethod} • ${item.date}</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="font-mono font-bold text-slate-800 text-xs">RM ${item.amt.toFixed(2)}</span>
+            <button onclick="deleteItem(${item.id})" class="text-slate-300 hover:text-red-500 font-bold text-sm px-1.5 py-0.5 transition-colors">✕</button>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    window.deleteItem = (id) => {
+      if(confirm('Delete this transaction?')) {
+        expenses = expenses.filter(x => x.id !== id);
+        localStorage.setItem('myr_deluxe_expenses', JSON.stringify(expenses));
+        renderHistory();
+        updateTotal();
+      }
+    };
+
+    function renderAnalytics() {
+      const month = document.getElementById('monthPicker').value;
+      const monthData = expenses.filter(x => x.date.startsWith(month));
+      const total = monthData.reduce((a, b) => a + b.amt, 0);
+      document.getElementById('monthTotal').textContent = `RM ${total.toFixed(2)}`;
+
+      const catTotals = {};
+      monthData.forEach(x => { catTotals[x.cat] = (catTotals[x.cat] || 0) + x.amt; });
+
+      if(catChartInstance) catChartInstance.destroy();
+      catChartInstance = new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(catTotals).length ? Object.keys(catTotals) : ['No Data'],
+          datasets: [{
+            data: Object.keys(catTotals).length ? Object.values(catTotals) : [1],
+            backgroundColor: Object.keys(catTotals).length ? ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#64748b'] : ['#e2e8f0']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Plus Jakarta Sans', size: 10 } } }
+          }
+        }
+      });
+
+      const trend = {};
+      for(let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        trend[d.toISOString().slice(0, 7)] = 0;
+      }
+      expenses.forEach(x => {
+        const m = x.date.slice(0, 7);
+        if(trend[m] !== undefined) trend[m] += x.amt;
+      });
+
+      if(trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(document.getElementById('trendChart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(trend),
+          datasets: [{
+            label: 'Monthly Spend (RM)',
+            data: Object.values(trend),
+            backgroundColor: '#6366f1',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'JetBrains Mono', size: 9 } } },
+            x: { grid: { display: false }, ticks: { font: { family: 'Plus Jakarta Sans', size: 9 } } }
+          }
+        }
+      });
+    }
+
+    updateTotal();
+  </script>
+</body>
+</html>
